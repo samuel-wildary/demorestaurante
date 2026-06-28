@@ -15,9 +15,7 @@ const formatMessage = (text) => {
 };
 
 function App() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Olá! 👋 Sou a *Bella*, assistente virtual da *Bella Italia* 🍕🍔.\nComo posso ajudar você hoje?' }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [cart, setCart] = useState([]);
@@ -147,7 +145,7 @@ function App() {
             </div>
           </div>
 
-          {messages.map((msg, index) => {
+          {messages.filter(msg => msg.role === 'user' || (msg.role === 'assistant' && msg.content)).map((msg, index) => {
             const isUser = msg.role === 'user';
             return (
               <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
