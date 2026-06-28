@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { sendMessageToOpenAI } from './openaiService';
+import { sendChatMessage } from './openaiService';
 import { menuData } from './menuData';
 import { ShoppingCart, Send, MoreVertical, Phone, Video, ChevronLeft, Mic, Paperclip, Camera, Smile, Store, Check, CheckCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -36,6 +36,31 @@ function App() {
     scrollToBottom();
   }, [messages, isLoading]);
 
+  const cartFunctions = {
+    addToCart: (item_id, quantity, flavors, notes) => {
+      const item = menuData.items.find(i => i.id === item_id);
+      if (!item) throw new Error("Item não encontrado");
+      const newItem = { ...item, quantity, flavors, notes, cart_item_id: Math.random().toString(36).substr(2, 9) };
+      setCart(prev => [...prev, newItem]);
+      return newItem;
+    },
+    removeFromCart: (cart_item_id) => {
+      setCart(prev => prev.filter(i => i.cart_item_id !== cart_item_id));
+    },
+    clearCart: () => {
+      setCart([]);
+    },
+    finalizeOrder: (customer_name, delivery_address, payment_method) => {
+      setOrderFinalized(true);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#25D366', '#ffffff']
+      });
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -47,26 +72,16 @@ function App() {
     setOrderFinalized(false);
 
     try {
-      const responseMessage = await sendMessageToOpenAI(
+      const response = await sendChatMessage({
         apiKey,
         model,
-        newMessages,
+        messages: newMessages,
         cart,
-        (updatedCart) => setCart(updatedCart),
-        (finalized) => {
-          if (finalized) {
-            setOrderFinalized(true);
-            confetti({
-              particleCount: 100,
-              spread: 70,
-              origin: { y: 0.6 },
-              colors: ['#25D366', '#ffffff']
-            });
-          }
-        }
-      );
+        cartFunctions,
+        onSystemMessage: (msg) => console.log(msg)
+      });
 
-      setMessages((prev) => [...prev, responseMessage]);
+      setMessages(response.updatedHistory);
     } catch (error) {
       console.error("Error sending message:", error);
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Desculpe, ocorreu um erro de conexão. Poderia repetir?' }]);
